@@ -39,6 +39,7 @@ public class LoadLib {
             out.close();
 
             System.load(fout.getAbsolutePath());
+            fout.deleteOnExit();
             return true;
         } catch (Throwable ex) {
             return false;

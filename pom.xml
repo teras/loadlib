@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.panayotis</groupId>
     <artifactId>loadlib</artifactId>
-    <version>0.1</version>
+    <version>0.1.1</version>
     <name>LoadLibrary</name>
     <description>Load native libraries embedded as resources in a JAR file from Java transparently</description>
     <url>https://github.com/teras/loadlib</url>
