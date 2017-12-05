@@ -19,7 +19,7 @@ public class LoadLib {
 
     @SuppressWarnings("UseSpecificCatch")
     public static boolean load(String resourcepath) {
-        byte[] buffer = new byte[0x1000];
+        byte[] buffer = new byte[0x4000];
         BufferedInputStream in = null;
         BufferedOutputStream out = null;
         try {
