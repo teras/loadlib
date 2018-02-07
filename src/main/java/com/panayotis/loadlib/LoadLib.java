@@ -1,7 +1,19 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Loadlib makes easy to load native libraries for Java packed as JAR files.
+ * Copyright (C) 2018  Panayotis Katsaloulis
+
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.panayotis.loadlib;
 
@@ -19,6 +31,7 @@ public class LoadLib {
         return load(resourcepath, (File) null);
     }
 
+    @SuppressWarnings("UseSpecificCatch")
     public static boolean load(Class signatureClass, String resourcepath) {
         if (resourcepath == null || signatureClass == null)
             return load(resourcepath, (File) null);
@@ -40,20 +53,26 @@ public class LoadLib {
     }
 
     private static boolean load(String resourcepath, File destLib) {
-        if (resourcepath == null)
+        File fileOut = null;
+        try {
+            if (resourcepath == null)
+                return false;
+            fileOut = destLib == null ? tempLibLoc(geFileName(resourcepath)) : destLib;
+            if (fileOut == null)
+                return false;
+            fileOut.getParentFile().mkdirs();
+            if (!fileOut.isFile())
+                dumpLib(fileOut, resourcepath);
+            System.load(fileOut.getAbsolutePath());
+            if (destLib == null)
+                fileOut.deleteOnExit();
+            return true;
+        } catch (Throwable th) {
+            if (fileOut != null)
+                fileOut.delete();
             return false;
-        File fileOut = destLib == null ? tempLibLoc(geFileName(resourcepath)) : destLib;
-        if (fileOut == null)
-            return false;
-        fileOut.getParentFile().mkdirs();
-        if (!fileOut.isFile())
-            dumpLib(fileOut, resourcepath);
-        System.load(fileOut.getAbsolutePath());
-//        if (destLib == null)
-//            fileOut.deleteOnExit();
-        return true;
+        }
     }
-
 
     private static File tempLibLoc(String name) {
         File temp;
@@ -118,7 +137,7 @@ public class LoadLib {
                 + (path.endsWith("/") ? "" : "/")
                 + prefix
                 + basename
-                +bits
+                + bits
                 + suffix;
     }
 }
