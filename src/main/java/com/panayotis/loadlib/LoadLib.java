@@ -21,20 +21,22 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.zip.GZIPInputStream;
 
 /**
  * @author teras
  */
+@SuppressWarnings("unused")
 public class LoadLib {
 
-    public static boolean load(String resourcepath) {
-        return load(resourcepath, (File) null);
+    public static boolean load(String resourcePath) {
+        return load(resourcePath, null);
     }
 
     @SuppressWarnings("UseSpecificCatch")
-    public static boolean load(Class signatureClass, String resourcepath) {
-        if (resourcepath == null || signatureClass == null)
-            return load(resourcepath, (File) null);
+    public static boolean load(Class<?> signatureClass, String resourcePath) {
+        if (resourcePath == null || signatureClass == null)
+            return load(resourcePath, null);
         File outFile;
         try {
             URL location = signatureClass.getProtectionDomain().getCodeSource().getLocation();
@@ -42,14 +44,15 @@ public class LoadLib {
                     + ".cache" + File.separator + "loadlib"
                     + File.separator + "libs" + File.separator
                     + URLEncoder.encode(location.toString(), "UTF-8")
-                    + File.separator + geFileName(resourcepath));
+                    + File.separator + geFileName(resourcePath));
             File origFile = getFileFromURL(location);
             if (origFile != null && outFile.isFile() && origFile.lastModified() > outFile.lastModified())
+                //noinspection ResultOfMethodCallIgnored
                 outFile.delete();
         } catch (Throwable e) {
             outFile = null;
         }
-        return load(resourcepath, outFile);
+        return load(resourcePath, outFile);
     }
 
     private static boolean load(String resourcepath, File destLib) {
@@ -60,15 +63,18 @@ public class LoadLib {
             fileOut = destLib == null ? tempLibLoc(geFileName(resourcepath)) : destLib;
             if (fileOut == null)
                 return false;
-            fileOut.getParentFile().mkdirs();
+            if (!fileOut.getParentFile().mkdirs())
+                return false;
             if (!fileOut.isFile())
-                dumpLib(fileOut, resourcepath);
+                if (!dumpLib(fileOut, resourcepath))
+                    return false;
             System.load(fileOut.getAbsolutePath());
             if (destLib == null)
                 fileOut.deleteOnExit();
             return true;
         } catch (Throwable th) {
             if (fileOut != null)
+                //noinspection ResultOfMethodCallIgnored
                 fileOut.delete();
             return false;
         }
@@ -81,24 +87,40 @@ public class LoadLib {
         } catch (IOException e) {
             return null;
         }
+        //noinspection ResultOfMethodCallIgnored
         temp.delete();
         return new File(temp, name);
     }
 
-    private static String geFileName(String resourcepath) {
-        return resourcepath.substring(resourcepath.lastIndexOf('/') + 1, resourcepath.length());
+    private static String geFileName(String resourcePath) {
+        return resourcePath.substring(resourcePath.lastIndexOf('/') + 1);
     }
 
-    private static boolean dumpLib(File fileOut, String resourcepath) {
-        BufferedInputStream in = null;
-        BufferedOutputStream out = null;
+    private static void dumpData(InputStream in, @SuppressWarnings("SameParameterValue") int hm) throws IOException {
+        for (int i = 0; i < hm; i++) {
+            int read = -1;
+            while (read < 0)
+                read = in.read();
+        }
+    }
+
+    private static boolean dumpLib(File fileOut, String resourcePath) {
+        InputStream in = null;
+        OutputStream out = null;
         try {
             byte[] buffer = new byte[0x16000];
             out = new BufferedOutputStream(new FileOutputStream(fileOut), buffer.length);
-            in = new BufferedInputStream(LoadLib.class.getResourceAsStream(resourcepath), buffer.length);
-            int size;
-            while ((size = in.read(buffer)) >= 0)
-                out.write(buffer, 0, size);
+            in = new BufferedInputStream(LoadLib.class.getResourceAsStream(resourcePath), buffer.length);
+            if (resourcePath.endsWith(".gz"))
+                in = new GZIPInputStream(in);
+            else if (resourcePath.endsWith(".gb"))
+                dumpData(in, 2);
+            int readCount;
+            int totalSize = 0;
+            while ((readCount = in.read(buffer)) >= 0) {
+                totalSize += readCount;
+                out.write(buffer, 0, readCount);
+            }
             out.flush();
             return true;
         } catch (IOException ex) {
@@ -107,12 +129,12 @@ public class LoadLib {
             if (in != null)
                 try {
                     in.close();
-                } catch (IOException ex) {
+                } catch (IOException ignored) {
                 }
             if (out != null)
                 try {
                     out.close();
-                } catch (IOException ex) {
+                } catch (IOException ignored) {
                 }
         }
     }
